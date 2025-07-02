@@ -1,0 +1,396 @@
+﻿@model List<SmartTrackKargo.Models.DeliveryPoint>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Admin Panel";
+}
+
+<!-- Dashboard Container -->
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="bg-primary bg-gradient text-white p-4 d-flex justify-content-between align-items-center rounded-3 shadow-sm mb-4">
+        <div>
+            <h3 class="m-0 fw-bold">📦 SmartTrack Kargo</h3>
+            <p class="m-0 mt-1 opacity-75">Yönetim Paneli</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-light" onclick="toggleFullscreenMap()">
+                <i class="fas fa-map-marked-alt me-2"></i>Haritayı Aç
+            </button>
+            <div class="bg-white bg-opacity-25 rounded-pill px-4 py-2">
+                <span class="me-2">👋</span>
+                <strong>Hoş Geldin Umeyir</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Prediction Card -->
+    <div class="card shadow-sm border-0 rounded-3 mb-4 overflow-hidden">
+        <div class="card-header bg-dark text-white p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="m-0"><i class="fas fa-robot me-2"></i>Yapay Zeka Teslimat Tahmini</h5>
+                <button onclick="yukleAITahmin()" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-sync-alt me-2"></i>Tahmini Güncelle
+                </button>
+            </div>
+        </div>
+        <div class="card-body" style="background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);">
+            <div class="row g-4 p-3">
+                <div class="col-md-3">
+                    <div class="bg-white bg-opacity-10 rounded-3 p-3 text-white text-center h-100">
+                        <i class="fas fa-temperature-high fa-2x mb-2"></i>
+                        <h6 class="mb-2">Sıcaklık</h6>
+                        <h4 class="m-0"><span id="sicaklik">-</span>°C</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="bg-white bg-opacity-10 rounded-3 p-3 text-white text-center h-100">
+                        <i class="fas fa-tint fa-2x mb-2"></i>
+                        <h6 class="mb-2">Nem</h6>
+                        <h4 class="m-0"><span id="nem">-</span>%</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="bg-white bg-opacity-10 rounded-3 p-3 text-white text-center h-100">
+                        <i class="fas fa-cloud-sun fa-2x mb-2"></i>
+                        <h6 class="mb-2">Hava Durumu</h6>
+                        <h4 class="m-0"><span id="hava">-</span></h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="bg-white bg-opacity-10 rounded-3 p-3 text-white text-center h-100">
+                        <i class="fas fa-chart-line fa-2x mb-2"></i>
+                        <h6 class="mb-2">Tahmin</h6>
+                        <h4 class="m-0"><span id="tahminSonuc">-</span></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-success p-4">
+                            <i class="fas fa-check-circle fa-2x text-white"></i>
+                        </div>
+                        <div class="p-3">
+                            <h6 class="text-muted mb-1">Teslim Edilenler</h6>
+                            <h3 class="m-0 delivered-count">@Model.Count(p => p.IsDelivered)</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-warning p-4">
+                            <i class="fas fa-clock fa-2x text-white"></i>
+                        </div>
+                        <div class="p-3">
+                            <h6 class="text-muted mb-1">Bekleyen Teslimatlar</h6>
+                            <h3 class="m-0 pending-count">@Model.Count(p => !p.IsDelivered)</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary p-4">
+                            <i class="fas fa-map-marker-alt fa-2x text-white"></i>
+                        </div>
+                        <div class="p-3">
+                            <h6 class="text-muted mb-1">Toplam Nokta</h6>
+                            <h3 class="m-0 total-count">@Model.Count()</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="deliveries-tab" data-bs-toggle="tab" data-bs-target="#deliveries" type="button" role="tab">
+                <i class="fas fa-list me-2"></i>Teslimatlar
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="map-tab" data-bs-toggle="tab" data-bs-target="#map" type="button" role="tab">
+                <i class="fas fa-map-marked-alt me-2"></i>Harita
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="adminTabContent">
+        <!-- Deliveries Tab -->
+        <div class="tab-pane fade show active" id="deliveries" role="tabpanel">
+            <!-- Search and Filter -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" id="searchBox" class="form-control border-0 bg-light" placeholder="Bilgi veya adres ara..." />
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" id="showOnlyDelivered" />
+                                <label class="form-check-label" for="showOnlyDelivered">Sadece Teslim Edilenler</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delivery Table -->
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0">ID</th>
+                                <th class="border-0">Bilgi</th>
+                                <th class="border-0">Koordinat</th>
+                                <th class="border-0">Durum</th>
+                                <th class="border-0">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr data-id="@item.Id">
+                                    <td class="align-middle">@item.Id</td>
+                                    <td class="align-middle">@item.Info</td>
+                                    <td class="align-middle">@item.Latitude, @item.Longitude</td>
+                                    <td class="align-middle">
+                                        @if (item.IsDelivered)
+                                        {
+                                            <span class="badge bg-success rounded-pill">
+                                                <i class="fas fa-check-circle me-1"></i>Teslim Edildi
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning rounded-pill">
+                                                <i class="fas fa-clock me-1"></i>Bekleniyor
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="align-middle">
+                                        @if (!item.IsDelivered)
+                                        {
+                                            <button class="btn btn-sm btn-outline-success rounded-pill teslimBtn" data-id="@item.Id">
+                                                <i class="fas fa-check me-1"></i>Teslim Et
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-check-circle text-success"></i>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Tab -->
+        <div class="tab-pane fade" id="map" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                <div class="card-body p-0">
+                    <iframe id="mapFrame" src="/maps.html" style="width: 100%; height: 600px; border: none;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fullscreen Map Modal -->
+<div class="modal fade" id="mapModal" tabindex="-1">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Teslimat Haritası</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe src="/maps.html" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <script>
+        function toggleFullscreenMap() {
+            var modal = new bootstrap.Modal(document.getElementById('mapModal'));
+            modal.show();
+        }
+
+        // Haritaya veri gönderme
+        function sendDataToMap() {
+            const points = @Html.Raw(Json.Serialize(Model.Select(p => new {
+                id = p.Id,
+                latitude = p.Latitude,
+                longitude = p.Longitude,
+                info = p.Info,
+                isDelivered = p.IsDelivered
+            })));
+
+            console.log('Gönderilen noktalar:', points);
+            
+            const mapFrame = document.getElementById('mapFrame');
+            mapFrame.onload = function() {
+                mapFrame.contentWindow.postMessage({
+                    type: 'initializePoints',
+                    points: points
+                }, '*');
+            };
+        }
+
+        // Teslim et butonlarına tıklama olayı ekle
+        document.querySelectorAll('.teslimBtn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const id = this.dataset.id;
+                
+                // Butonu devre dışı bırak ve loading göster
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>İşleniyor...';
+                
+                // AJAX isteği gönder
+                fetch(`/Admin/MarkAsDelivered/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Satırı güncelle
+                        const row = this.closest('tr');
+                        const statusCell = row.querySelector('td:nth-child(4)');
+                        statusCell.innerHTML = `
+                            <span class="badge bg-success rounded-pill">
+                                <i class="fas fa-check-circle me-1"></i>Teslim Edildi
+                            </span>
+                        `;
+                        
+                        // Butonu kaldır ve onay ikonu koy
+                        this.parentElement.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+                        
+                        // İstatistikleri güncelle
+                        updateStats();
+
+                        // Haritayı güncelle
+                        const mapFrame = document.getElementById('mapFrame');
+                        mapFrame.contentWindow.postMessage({
+                            type: 'updateDeliveryPoint',
+                            id: parseInt(id),
+                            isDelivered: true
+                        }, '*');
+                    }
+                })
+                .catch(error => {
+                    console.error('Hata:', error);
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-check me-1"></i>Teslim Et';
+                });
+            });
+        });
+
+        // İstatistikleri güncelle
+        function updateStats() {
+            const rows = document.querySelectorAll('tbody tr');
+            const totalCount = rows.length;
+            const deliveredCount = document.querySelectorAll('.badge.bg-success').length;
+            const pendingCount = totalCount - deliveredCount;
+
+            document.querySelector('.delivered-count').textContent = deliveredCount;
+            document.querySelector('.pending-count').textContent = pendingCount;
+            document.querySelector('.total-count').textContent = totalCount;
+        }
+
+        // Arama ve filtreleme
+        const searchBox = document.getElementById('searchBox');
+        const showOnlyDelivered = document.getElementById('showOnlyDelivered');
+
+        function filterTable() {
+            const searchTerm = searchBox.value.toLowerCase();
+            const onlyDelivered = showOnlyDelivered.checked;
+
+            document.querySelectorAll('tbody tr').forEach(row => {
+                const info = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const isDelivered = row.querySelector('.badge.bg-success') !== null;
+
+                const matchesSearch = info.includes(searchTerm);
+                const matchesFilter = !onlyDelivered || isDelivered;
+
+                row.style.display = matchesSearch && matchesFilter ? '' : 'none';
+            });
+        }
+
+        searchBox?.addEventListener('input', filterTable);
+        showOnlyDelivered?.addEventListener('change', filterTable);
+
+        // Sayfa yüklendiğinde AI tahminini al
+        function yukleAITahmin() {
+            // Butonu devre dışı bırak ve yükleniyor göster
+            const tahminBtn = document.querySelector('button[onclick="yukleAITahmin()"]');
+            tahminBtn.disabled = true;
+            tahminBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin me-2"></i>Güncelleniyor...';
+
+            fetch('/Admin/AITahminKutucugu')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('sicaklik').textContent = data.sicaklik.replace('°C', '');
+                        document.getElementById('nem').textContent = data.nem.replace('%', '');
+                        document.getElementById('hava').textContent = data.hava;
+                        document.getElementById('tahminSonuc').textContent = data.teslimOlur ? 'Uygun ✅' : 'Riskli ⚠️';
+                        document.getElementById('tahminSonuc').className = data.teslimOlur ? 'text-success' : 'text-warning';
+                    } else {
+                        console.error('Hata:', data.error);
+                        alert('Tahmin güncellenirken bir hata oluştu: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Hata:', error);
+                    alert('Tahmin güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
+                })
+                .finally(() => {
+                    // Butonu tekrar aktif et ve normal haline döndür
+                    tahminBtn.disabled = false;
+                    tahminBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Tahmini Güncelle';
+                });
+        }
+
+        // Sayfa yüklendiğinde çalıştır
+        document.addEventListener('DOMContentLoaded', () => {
+            sendDataToMap();
+            yukleAITahmin();
+            updateStats();
+        });
+    </script>
+}
